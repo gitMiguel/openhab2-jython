@@ -33,7 +33,7 @@ class _FunctionRule(scope.SimpleRule):
         
     def execute(self, module, inputs):
         try:
-            self.callback(inputs.get('event'))
+            self.callback(inputs.get('event'), self.log)
         except:
             import traceback
             self.log.error(traceback.format_exc())
@@ -52,7 +52,7 @@ def rule(name=None, description=None, tags=None):
                 else:
                     self.name = name
                 #set_uid_prefix(self)
-                self.log = logging.getLogger(LOG_PREFIX + "." + clazz.__name__)
+                self.log = logging.getLogger(LOG_PREFIX + ("." + clazz.__name__ if name is None else ("." + name)))
                 clazz.__init__(self, *args, **kwargs)
                 if description is not None:
                     self.description = description
