@@ -1,9 +1,7 @@
-#from org.slf4j import Logger, LoggerFactory
 from openhab.rules import rule
 from openhab.triggers import when
 from openhab.actions import Telegram
 
-#log = LoggerFactory.getLogger("org.eclipse.smarthome.model.script.Startup")
 
 isRunning = False
 
