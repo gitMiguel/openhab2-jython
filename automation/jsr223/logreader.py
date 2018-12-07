@@ -3,18 +3,33 @@ from openhab.rules import rule
 from openhab.triggers import when
 from openhab.actions import Telegram
 
-@rule("LogReader Alarm")
+error_list = []
+
+@rule("SendLogReaderMessage")
+@when("Time cron 0 0/15 * * * ?")
+
+def execute(event, log):
+	global error_list
+	global message
+	if len(error_list) != 0:
+		message = "Errors in log: {}\n\n".format(len(error_list))
+		for index, msg in enumerate(error_list):
+			message += "[{}/{}]\n {}\n\n".format(index + 1, len(error_list), msg.replace("[ERROR]", ""))
+		Telegram.sendTelegram("LanteeBot", message)
+		error_list = []
+		events.sendCommand("LogReaderErrors", "0")
+
+
+@rule("LogReader")
 @when("Channel logreader:reader:openhablog:newErrorEvent triggered")
 
 def execute(event, log):
-	pass
-    #Telegram.sendTelegram("LanteeBot", message)
+	global error_list
+	error_list.append(event.getEvent())
 
-	#when
-    #	Item logwatcherLastRead changed
-	#then
-	#	Thread::sleep(2000)
-    #	if (logwatcherErrors.state > 0) {
-	#		sendTelegram("LanteeBot", "LogReader alarm!\n\n" + logwatcherErrors.state.toString + " Errors in log! Heres the last one:\n\n" + logwatcherLastEline.state.toString)
-	#	}
-  	#end
+
+@rule("LogReaderTest")
+@when("Item Test2 changed")
+
+def execute(event, log):
+	log.error("Test error")
