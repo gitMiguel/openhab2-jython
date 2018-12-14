@@ -3,12 +3,12 @@ import sys
 from threading import Timer
 from openhab.jsr223.scope import events
 from openhab.jsr223.scope import itemRegistry 
-
-import org.eclipse.smarthome.core.items.GroupItem
-
 #reload(sys.modules['openhab.jsr223'])
 #from openhab.jsr223.scope import events
 #from openhab.jsr223.scope import itemRegistry
+
+
+import org.eclipse.smarthome.core.items.GroupItem as GroupItem
 
 from openhab.log import add_logger, log_traceback
 from local import config
@@ -20,46 +20,62 @@ Timer classes for openHAB jython rules
 @add_logger
 class BaseTimer(object):
     """ Base class for timers"""
-    def __init__(self, interval, function, args=[], kwargs={}):
-        self.timer = None
-        self.interval = interval
-        self.function = function
-        self.args = args
-        self.kwargs = kwargs
+
+    _timers={}
+
+    def __init__(self, function=None, args=[], kwargs={}):
+        self.setFunction(function, args, kwargs)
 
     def __del__(self):
         self.stop()
         self.timer = None
 
-    def start(self):
-        if not self.timer or str(self.timer.getState()) == "TERMINATED":
-            self.timer = Timer(self.interval, self.function, self.args, self.kwargs)
-            self.timer.start()
-        elif self.timer and str(self.timer.getState()) == "TIMED_WAITING":
-            self.timer.stop()
-            self.timer = Timer(self.interval, self.function, self.args, self.kwargs)
-            self.timer.start()
+    def start(self, name=None, interval=60, items=None):
+        if name not in self._timers:
+            self._timers[name] = None
+        self.log.debug(self._timers)
+
+        self.interval = interval
+        self.items = items
+        self.startTimer(name)
+
+    def startTimer(self, name):
+        """ Start or reschedule timer """
+        timer = self._timers[name]
+        if not timer or str(timer.getState()) == "TERMINATED":
+            timer = Timer(self.interval, self.function, self.args, self.kwargs)
+            timer.start()
+        elif timer and str(timer.getState()) == "TIMED_WAITING":
+            timer.stop()
+            timer = Timer(self.interval, self.function, self.args, self.kwargs)
+            timer.start()
+
+    def run(self):
+        """ function that runs when timer expires or is stopped """ 
+        pass
 
     def stop(self):
         """ Stop the timer and run function"""
         if self.timer:
             self.timer.cancel()
-            self.run(self.args, self.kwargs)
             self.timer = None
+            self.run()
 
     def setFunction(self, function, args=[], kwargs={}):
-        """Set function that runs when timer ends or is stopped"""
+        """Set function that runs when timer expires or is stopped"""
+        self.function = function
+        self.args = args
+        self.kwargs = kwargs
         pass
 
 @add_logger
 class OffTimer(BaseTimer):
     """ Off timer """
-    def __init__(self, interval, items):
-        BaseTimer.__init__(self, interval, self.runnable)
-        self.items = items
+    def __init__(self):
+        BaseTimer.__init__(self, self.run)
 
     @log_traceback
-    def runnable(self):
+    def run(self):
         if isinstance(self.items, list):
             for item in self.items:
                 events.sendCommand(item, "OFF")

@@ -29,7 +29,7 @@ def execute(event, log):
     illumination = filter(lambda item: item.name.find(room), ir.getItem("GrIllumination").members)[0]    
     log.debug("Illumination: {}".format(illumination.state))
 
-    if illumination.state.intValue() <= config.illumination_states[str(ir.getItem("SolarTime").state)] or event.itemName == "Test":
+    if illumination.state.intValue() >= config.illumination_states[str(ir.getItem("SolarTime").state)] or event.itemName == "Test":
 
         light_group =  "GrLights_" + str(room)
         item2 = ir.getItem(light_group)
@@ -37,5 +37,6 @@ def execute(event, log):
         for item in lights:
             events.sendCommand(item, config.dimmer_values[str(ir.getItem("SolarTime").state)])        
 
-        x = OffTimer(60, item2)
-        x.start()
+        
+        timer = OffTimer()
+        timer.start(event.itemName, 60, item2)
